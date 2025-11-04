@@ -6,7 +6,15 @@ const itemList = document.getElementById("item-list");
 const clearBtn = document.getElementById("clear");
 const itemFilter = document.getElementById("filter");
 
-const addItem = (e) => {
+const displayItems = () => {
+  const itemsFromStorage = getItemsFromStorage();
+
+  itemsFromStorage.forEach((item) => addItemToDOM(item));
+
+  checkUI();
+};
+
+const onAddItemSubmit = (e) => {
   e.preventDefault();
 
   const newInput = itemInput.value;
@@ -16,18 +24,27 @@ const addItem = (e) => {
     return;
   }
 
+  // create DOM element
+  addItemToDOM(newInput);
+
+  // add item to the local storage
+  addItemToStorage(newInput);
+
+  checkUI();
+
+  itemInput.value = "";
+};
+
+const addItemToDOM = (item) => {
   //   create a new list item
   const li = document.createElement("li");
-  li.appendChild(document.createTextNode(newInput));
+  li.appendChild(document.createTextNode(item));
 
   const button = createButton("remove-item btn-link text-red");
   li.appendChild(button);
 
   // adding li to the DOM
   itemList.appendChild(li);
-  checkUI();
-
-  itemInput.value = "";
 };
 
 const createButton = (classes) => {
@@ -63,9 +80,49 @@ const clearItems = () => {
   }
 
   checkUI();
-  
+
   // #2 option
   // itemList.innerHTML = "";
+};
+
+const filterItems = (e) => {
+  const items = itemList.querySelectorAll("li");
+  const text = e.target.value.toLowerCase();
+
+  items.forEach((item) => {
+    const itemName = item.firstChild.textContent.toLowerCase();
+
+    if (itemName.indexOf(text) != -1) {
+      item.style.display = "flex";
+    } else {
+      item.style.display = "none";
+    }
+  });
+};
+
+// Storage
+
+const addItemToStorage = (item) => {
+  const itemsFromStorage = getItemsFromStorage();
+
+  // adding a new item to array
+  itemsFromStorage.push(item);
+
+  // convert JSON to string
+  localStorage.setItem("items", JSON.stringify(itemsFromStorage));
+};
+
+const getItemsFromStorage = (item) => {
+  let itemsFromStorage;
+
+  // checking if there items in a storage
+  if (localStorage.getItem("items") === null) {
+    itemsFromStorage = [];
+  } else {
+    itemsFromStorage = JSON.parse(localStorage.getItem("items"));
+  }
+
+  return itemsFromStorage;
 };
 
 const checkUI = () => {
@@ -80,10 +137,17 @@ const checkUI = () => {
   }
 };
 
-// Event listeners
+// initializing
 
-itemForm.addEventListener("submit", addItem);
-itemList.addEventListener("click", removeItem);
-clearBtn.addEventListener("click", clearItems);
+const init = () => {
+  // Event listeners
+  itemForm.addEventListener("submit", onAddItemSubmit);
+  itemList.addEventListener("click", removeItem);
+  clearBtn.addEventListener("click", clearItems);
+  itemFilter.addEventListener("input", filterItems);
+  document.addEventListener("DOMContentLoaded", displayItems);
 
-checkUI();
+  checkUI();
+};
+
+init();
