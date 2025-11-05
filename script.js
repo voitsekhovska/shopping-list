@@ -5,6 +5,8 @@ const itemInput = document.getElementById("item-input");
 const itemList = document.getElementById("item-list");
 const clearBtn = document.getElementById("clear");
 const itemFilter = document.getElementById("filter");
+const formBtn = itemForm.querySelector("button");
+let isEditMode = false;
 
 const displayItems = () => {
   const itemsFromStorage = getItemsFromStorage();
@@ -24,6 +26,21 @@ const onAddItemSubmit = (e) => {
     return;
   }
 
+  // check for edit mode
+  if (isEditMode) {
+    const itemToEdit = itemList.querySelector(".edit-mode");
+
+    removeItemFromStorage(itemToEdit.textContent);
+    itemToEdit.classList.remove("edit-mode");
+    itemToEdit.remove();
+    isEditMode = false;
+  } else {
+    if (checkIfItemExists(newInput)) {
+      alert("This item already exists");
+      return;
+    }
+  }
+
   // create DOM element
   addItemToDOM(newInput);
 
@@ -31,8 +48,6 @@ const onAddItemSubmit = (e) => {
   addItemToStorage(newInput);
 
   checkUI();
-
-  itemInput.value = "";
 };
 
 const addItemToDOM = (item) => {
@@ -63,14 +78,25 @@ const createIcon = (classes) => {
   return icon;
 };
 
-const removeItem = (e) => {
+// handler function
+const onItemClick = (e) => {
   if (e.target.parentElement.classList.contains("remove-item")) {
-    if (confirm("Are you sure?")) {
-      // i(target) -> button -> li
-      e.target.parentElement.parentElement.remove();
+    // i(target) -> button -> li
+    removeItem(e.target.parentElement.parentElement);
+  } else {
+    setItemToEdit(e.target);
+  }
+};
 
-      checkUI();
-    }
+const removeItem = (item) => {
+  if (confirm("Are you sure?")) {
+    // remove from DOM
+    item.remove();
+
+    // remove from storage
+    removeItemFromStorage(item.textContent);
+
+    checkUI();
   }
 };
 
@@ -79,10 +105,27 @@ const clearItems = () => {
     itemList.removeChild(itemList.firstChild);
   }
 
+  // remove from the storage
+  localStorage.removeItem("items");
+
   checkUI();
 
   // #2 option
   // itemList.innerHTML = "";
+};
+
+const setItemToEdit = (item) => {
+  isEditMode = true;
+
+  itemList
+    .querySelectorAll("li")
+    .forEach((i) => i.classList.remove("edit-mode"));
+
+  item.classList.add("edit-mode");
+  formBtn.innerHTML = '<i class="fa-solid fa-pen"></i> Update item';
+  formBtn.classList.add("edit-mode-btn");
+
+  itemInput.value = item.textContent;
 };
 
 const filterItems = (e) => {
@@ -125,7 +168,24 @@ const getItemsFromStorage = (item) => {
   return itemsFromStorage;
 };
 
+const removeItemFromStorage = (item) => {
+  let itemsFromStorage = getItemsFromStorage();
+
+  // filter out item to be removed
+  itemsFromStorage = itemsFromStorage.filter((i) => i !== item);
+
+  // re-set the local storage
+  localStorage.setItem("items", JSON.stringify(itemsFromStorage));
+};
+
+const checkIfItemExists = (item) => {
+  const itemsFromStorage = getItemsFromStorage();
+  return itemsFromStorage.includes(item);
+}
+
 const checkUI = () => {
+  itemInput.value = "";
+
   const items = itemList.querySelectorAll("li");
 
   if (items.length === 0) {
@@ -135,6 +195,11 @@ const checkUI = () => {
     clearBtn.style.display = "block";
     itemFilter.style.display = "block";
   }
+
+  isEditMode = false;
+
+  formBtn.innerHTML = '<i class="fa-solid fa-plus"></i> Add Item';
+  formBtn.classList.remove("edit-mode-btn");
 };
 
 // initializing
@@ -142,7 +207,7 @@ const checkUI = () => {
 const init = () => {
   // Event listeners
   itemForm.addEventListener("submit", onAddItemSubmit);
-  itemList.addEventListener("click", removeItem);
+  itemList.addEventListener("click", onItemClick);
   clearBtn.addEventListener("click", clearItems);
   itemFilter.addEventListener("input", filterItems);
   document.addEventListener("DOMContentLoaded", displayItems);
